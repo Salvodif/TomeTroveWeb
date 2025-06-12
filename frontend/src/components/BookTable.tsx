@@ -1,57 +1,75 @@
+// frontend/src/components/BookTable.tsx
+
+// Ensure Lucide icons are imported
 import React, { useState, useMemo } from 'react';
 import { Book } from '../types/Book';
-import { CheckCircle, Circle, Search, Plus, BookOpen, Tag, Calendar } from 'lucide-react';
+// Make sure Trash2 is imported
+import { CheckCircle, Circle, Search, Plus, BookOpen, Tag, Calendar, Trash2 } from 'lucide-react';
+
 
 interface BookTableProps {
   books: Book[];
   onToggleRead: (id: string) => void;
   onAddBook: () => void;
+  onDeleteBook: (id: string) => void; // Added this prop
 }
 
-export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAddBook }) => {
+export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAddBook, onDeleteBook }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<keyof Book>('dateAdded');
+  // Ensure sortBy can handle all relevant Book keys, especially if new ones are added or names change.
+  // For now, 'dateAdded', 'title', 'author', 'read', 'series' are primary.
+  const [sortBy, setSortBy] = useState<keyof Book | 'actions'>('dateAdded');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const filteredAndSortedBooks = useMemo(() => {
     let filtered = books.filter(book =>
       book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (book.tags && book.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))) || // check if tags exist
       (book.series && book.series.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    return filtered.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
+    if (sortBy !== 'actions') { // Prevent sorting by 'actions' column
+        return filtered.sort((a, b) => {
+        let aValue = a[sortBy as keyof Book]; // Type assertion
+        let bValue = b[sortBy as keyof Book]; // Type assertion
 
-      if (sortBy === 'dateAdded') {
-        aValue = new Date(aValue as string).getTime();
-        bValue = new Date(bValue as string).getTime();
-      }
+        if (sortBy === 'dateAdded') {
+            aValue = new Date(aValue as string).getTime();
+            bValue = new Date(bValue as string).getTime();
+        } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+        } else if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+            // no change needed for boolean
+        }
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
 
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
+        if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+        });
+    }
+    return filtered; // Return unsorted if sortBy is 'actions' or an invalid key
   }, [books, searchTerm, sortBy, sortOrder]);
 
-  const handleSort = (column: keyof Book) => {
+  const handleSort = (column: keyof Book | 'actions') => { // Allow 'actions' but don't sort by it
+    if (column === 'actions') return; // Do nothing if actions column header is clicked
+
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy(column);
+      setSortBy(column as keyof Book); // Ensure it's a valid Book key
       setSortOrder('asc');
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('it-IT');
+    try {
+        return new Date(dateString).toLocaleDateString('it-IT');
+    } catch (e) {
+        return "Invalid date";
+    }
   };
 
   const getTagColor = (tag: string) => {
@@ -63,13 +81,14 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
       'bg-pink-100 text-pink-800',
       'bg-indigo-100 text-indigo-800'
     ];
+    if (!tag) return colors[0];
     const hash = tag.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     return colors[hash % colors.length];
   };
 
   return (
     <div className="space-y-6">
-      {/* Header with search and add button */}
+      {/* Header with search and add button - unchanged */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -90,7 +109,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - unchanged */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="flex items-center gap-3">
@@ -174,6 +193,9 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
                     Serie
                   </button>
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Azioni
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -193,7 +215,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{book.title}</div>
-                    {book.rating && (
+                    {book.rating !== undefined && book.rating > 0 && ( // Check if rating exists and is positive
                       <div className="text-sm text-gray-500 mt-1">
                         {'★'.repeat(book.rating)}{'☆'.repeat(5 - book.rating)}
                       </div>
@@ -203,7 +225,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(book.dateAdded)}</td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
-                      {book.tags.map((tag) => (
+                      {book.tags && book.tags.map((tag) => ( // check if tags exist
                         <span
                           key={tag}
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTagColor(tag)}`}
@@ -217,11 +239,20 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
                     {book.series && (
                       <div>
                         <div className="font-medium">{book.series}</div>
-                        {book.seriesNumber && (
+                        {book.seriesNumber !== undefined && ( // check if seriesNumber exists
                           <div className="text-xs text-gray-500">Libro #{book.seriesNumber}</div>
                         )}
                       </div>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <button
+                      onClick={() => onDeleteBook(book.id)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-1"
+                      aria-label={`Delete ${book.title}`}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -233,7 +264,7 @@ export const BookTable: React.FC<BookTableProps> = ({ books, onToggleRead, onAdd
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">Nessun libro trovato</p>
-            <p className="text-gray-400 text-sm">Prova a modificare i termini di ricerca</p>
+            <p className="text-gray-400 text-sm">Prova a modificare i termini di ricerca o aggiungi un nuovo libro.</p>
           </div>
         )}
       </div>
