@@ -1,0 +1,13 @@
+{
+  "paths": {
+    "tinydb_path": "data/library.json",
+    "library_root_path": "/path/to/your/book_collection",
+    "upload_dir_path": "/path/to/your/upload_directory",
+    "exiftool_path": "/path/to/your/exiftool",
+    "log_dir": "logs"
+  },
+  "logging": {
+    "log_level": "INFO",
+    "main_logger_name": "TomeTroveBackend"
+  }
+}
