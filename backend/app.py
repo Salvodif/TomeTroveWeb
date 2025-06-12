@@ -30,10 +30,10 @@ def init_library_manager():
                     template_data = json.load(f_template)
 
                 # Use relative path for the example DB if not absolute
-                db_path_str = template_data["paths"]["tinydb_path"]
+                db_path_str = template_data["paths"]["tinydb_file"]
                 db_path = Path(db_path_str)
                 if not db_path.is_absolute():
-                    template_data["paths"]["tinydb_path"] = str((backend_root / db_path_str).resolve())
+                    template_data["paths"]["tinydb_file"] = str((backend_root / db_path_str).resolve())
 
                 # Ensure data directory exists for the example db
                 db_dir = (backend_root / Path(db_path_str).parent)
@@ -51,11 +51,11 @@ def init_library_manager():
 
     try:
         config_manager = ConfigManager(config_path=str(config_file))
-        db_path_str = config_manager.paths.get('tinydb_path')
-        library_root_str = config_manager.paths.get('library_root_path')
+        db_path_str = config_manager.paths.get('tinydb_file')
+        library_root_str = config_manager.paths.get('library_path')
 
         if not db_path_str or not library_root_str:
-            raise RuntimeError("'tinydb_path' or 'library_root_path' not found in config.")
+            raise RuntimeError("'tinydb_file' or 'library_path' not found in config.")
 
         db_path = Path(db_path_str)
         if not db_path.is_absolute():

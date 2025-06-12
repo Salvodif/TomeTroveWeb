@@ -1,0 +1,9 @@
+{
+  "paths": {
+    "tinydb_file": "/home/blackpraedicator/Documents/kDrive/TomeTroveDB/library.json",
+    "library_path": "/home/blackpraedicator/Documents/kDrive/TomeTroveDB",
+    "upload_dir_path": "/home/blackpraedicator/Downloads",
+    "exiftool_path": "exiftool",
+    "log_dir": "/home/blackpraedicator/Documents/kDrive/TomeTroveDB/logs" 
+  }
+}
